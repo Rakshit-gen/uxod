@@ -1,0 +1,1 @@
+{"question": "What if Jupiter were 80 times heavier, just enough to be a star?", "plan": [{"tool": "scale_mass", "args": {"name": "Jupiter", "factor": 80}}, {"tool": "run", "args": {"years": 300}}]}
