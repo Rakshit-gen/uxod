@@ -1,0 +1,1 @@
+{"question": "What if the Sun lost half its mass in an instant?", "plan": [{"tool": "scale_mass", "args": {"name": "Sun", "factor": 0.5}}, {"tool": "run", "args": {"years": 300}}]}
