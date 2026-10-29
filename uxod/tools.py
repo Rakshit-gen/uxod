@@ -5,6 +5,7 @@ import numpy as np
 
 from . import sim
 
+MASS_UNITS = {"msun": 1.0, "mjup": 9.5479e-4, "mearth": 3.0034e-6}
 DIRECTIONS = ("prograde", "retrograde", "outward", "inward", "north", "south")
 
 
@@ -50,6 +51,16 @@ class Universe:
         b.vel = b.vel + delta_v_kms * sim.KMS * self._direction(b, direction)
         return {"name": b.name, "now": sim.orbit(self.bodies, b)}
 
+    def smash(self, target: str, impactor_mass: float, mass_unit: str, speed_kms: float, direction: str):
+        """An impactor hits the target and sticks, conserving momentum."""
+        b = self.body(target)
+        m = impactor_mass * MASS_UNITS[mass_unit]
+        hit = speed_kms * sim.KMS * self._direction(b, direction)
+        b.vel = (b.mass * b.vel + m * (b.vel + hit)) / (b.mass + m)
+        b.mass += m
+        return {"name": b.name, "mass_msun": b.mass, "delta_v_kms": round(speed_kms * m / b.mass, 4),
+                "now": sim.orbit(self.bodies, b)}
+
     def _direction(self, b: sim.Body, direction: str) -> np.ndarray:
         if direction not in DIRECTIONS:
             raise ValueError(f"direction must be one of {', '.join(DIRECTIONS)}")
@@ -67,6 +78,7 @@ def _tool(name, description, /, **params):
         "parameters": {"type": "object", "properties": params, "required": required}}}
 
 
+_unit = {"type": "string", "enum": list(MASS_UNITS), "description": "msun, mjup (Jupiters) or mearth (Earths)"}
 _dir = {"type": "string", "enum": list(DIRECTIONS), "description": "relative to the body's orbit"}
 
 TOOLS = [
@@ -76,5 +88,8 @@ TOOLS = [
           factor={"type": "number"}),
     _tool("kick", "Instantly changes a body's velocity by delta_v_kms in a direction.",
           name={"type": "string"}, delta_v_kms={"type": "number"}, direction=_dir),
+    _tool("smash", "Hits a body with an impactor that sticks to it, conserving momentum. Earth's orbital "
+          "speed is 29.8 km/s for scale.", target={"type": "string"}, impactor_mass={"type": "number"},
+          mass_unit=_unit, speed_kms={"type": "number"}, direction=_dir),
 ]
 TOOLS_BY_NAME = {t["function"]["name"]: t for t in TOOLS}

@@ -1,4 +1,6 @@
-from uxod import tools
+import numpy as np
+
+from uxod import sim, tools
 
 
 def test_bodies_are_found_by_name_in_any_case():
@@ -21,3 +23,16 @@ def test_a_prograde_kick_raises_the_orbit():
     after = u.call("kick", {"name": "Mars", "delta_v_kms": 3, "direction": "prograde"})["now"]["a_au"]
     assert after > before * 1.2
     assert "direction must be" in u.call("kick", {"name": "Mars", "delta_v_kms": 1, "direction": "up"})["error"]
+
+
+def test_a_smash_conserves_momentum():
+    u = tools.Universe()
+    earth = u.body("Earth")
+    m, v = earth.mass, earth.vel.copy()
+    impactor = 3.0034e-6
+    hit = 20 * sim.KMS * u._direction(earth, "retrograde")
+    out = u.call("smash", {"target": "Earth", "impactor_mass": 1, "mass_unit": "mearth",
+                           "speed_kms": 20, "direction": "retrograde"})
+    assert np.allclose(earth.mass * earth.vel, m * v + impactor * (v + hit), rtol=0, atol=1e-15)
+    assert abs(out["delta_v_kms"] - 20 * impactor / earth.mass) < 1e-4
+    assert out["now"]["a_au"] < 1
