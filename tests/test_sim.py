@@ -39,3 +39,13 @@ def test_without_the_sun_everything_leaves():
     gone = [e.split(": ")[1].split()[0] for e in result.events]
     assert {"Mercury", "Venus", "Earth"} <= set(gone)
     assert "Earth left the system at 30.3 km/s" in " ".join(result.events)
+
+
+def test_a_stopped_earth_falls_into_the_sun():
+    bodies = sim.solar_system()
+    by_name(bodies, "Earth").vel *= 0.02
+    sun_mass = by_name(bodies, "Sun").mass
+    result = sim.run(bodies, 1)
+    assert any("Earth hit Sun" in e for e in result.events)
+    assert "Earth" not in result.after
+    assert abs(by_name(bodies, "Sun").mass - sun_mass - 3.0404e-6) < 1e-12
