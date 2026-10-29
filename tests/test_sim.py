@@ -91,3 +91,13 @@ def test_the_heaviest_body_orbits_nothing():
     snap = sim.snapshot(sim.solar_system())
     assert snap["Sun"]["orbits"] is None
     assert snap["Jupiter"]["orbits"] == "Sun"
+
+
+def test_planets_keep_orbiting_the_sun_with_a_heavier_body_far_away():
+    from uxod import tools
+
+    u = tools.Universe()
+    u.add_flyby("Black hole", 10, "msun", 20, 50)
+    snap = u.list_bodies()
+    assert snap["Sun"]["orbits"] == "Black hole"
+    assert snap["Earth"]["orbits"] == "Sun" and snap["Earth"]["bound"]

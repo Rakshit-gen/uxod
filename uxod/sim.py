@@ -105,11 +105,13 @@ def energy(pos, vel, mass):
 
 
 def primary(bodies, body):
-    """The body this one orbits: the most massive other body, by default
-    the Sun. The heaviest body orbits nothing."""
-    others = [b for b in bodies if b is not body]
-    host = max(others, key=lambda b: b.mass) if others else None
-    return host if host and host.mass >= body.mass else None
+    """The body this one orbits: of the bodies at least as heavy, the one
+    pulling hardest, which is the Sun unless something heavy comes close.
+    The heaviest body orbits nothing."""
+    heavier = [b for b in bodies if b is not body and b.mass >= body.mass]
+    if not heavier:
+        return None
+    return max(heavier, key=lambda h: h.mass / float((h.pos - body.pos) @ (h.pos - body.pos)))
 
 
 def orbit(bodies, body):
