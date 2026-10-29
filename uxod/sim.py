@@ -247,6 +247,7 @@ def run(bodies: list[Body], years: float, frames: int = 600, max_steps: int = 3_
             next_frame += every
 
     sync()
+    track()
     if result.frame_years[-1] != round(t / DAYS_PER_YEAR, 3):
         record()
     result.after = snapshot(bodies)
