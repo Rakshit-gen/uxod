@@ -82,8 +82,16 @@ function frame(now) {
     remember();
   }
   draw();
+  $("year").textContent = `year ${clock.years.toFixed(1)}`;
   requestAnimationFrame(frame);
 }
+
+const $ = (id) => document.getElementById(id);
+$("play").onclick = () => {
+  clock.playing = !clock.playing;
+  $("play").textContent = clock.playing ? "Pause" : "Play";
+};
+$("speed").onchange = (e) => { clock.yearsPerSecond = +e.target.value; };
 
 addEventListener("resize", () => { fit(); draw(); });
 fit();

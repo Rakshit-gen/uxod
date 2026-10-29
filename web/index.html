@@ -20,7 +20,21 @@
     <section class="view">
       <canvas id="sky" role="img" aria-label="The Sun and planets, seen from above"></canvas>
     </section>
-    <aside class="panel" id="panel"></aside>
+    <aside class="panel" id="panel">
+      <section class="clock">
+        <button id="play" type="button">Pause</button>
+        <label>Speed
+          <select id="speed">
+            <option value="0.25">3 months a second</option>
+            <option value="1">1 year a second</option>
+            <option value="2" selected>2 years a second</option>
+            <option value="10">10 years a second</option>
+            <option value="50">50 years a second</option>
+          </select>
+        </label>
+        <output id="year">year 0.0</output>
+      </section>
+    </aside>
   </main>
   <script type="module" src="app.js"></script>
 </body>
