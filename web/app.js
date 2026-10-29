@@ -1,4 +1,4 @@
-import { norm, orbit, sub } from "./sim.js";
+import { HABITABLE_AU, norm, orbit, sub } from "./sim.js";
 import { DIRECTIONS, Universe } from "./tools.js";
 
 const COLOURS = { Sun: "#f5c542", Mercury: "#9a9a9a", Venus: "#d9b38c", Earth: "#4f8fe8", Mars: "#d0603a",
@@ -110,6 +110,29 @@ function table() {
   }).join("");
 }
 setInterval(table, 250);
+
+// Earth's closest and farthest from the Sun over every run so far.
+const earthRange = { lo: Infinity, hi: 0 };
+function status() {
+  const run = universe.current;
+  if (run && run.closest.Earth !== undefined) {
+    earthRange.lo = Math.min(earthRange.lo, run.closest.Earth);
+    earthRange.hi = Math.max(earthRange.hi, run.farthest.Earth);
+  }
+  const alive = universe.bodies.some((b) => b.name === "Earth");
+  const events = [...universe.events, ...(run ? run.events : [])];
+  if (!alive) $("earth").textContent = "Earth is gone.";
+  else if (earthRange.hi) {
+    const ok = earthRange.lo >= HABITABLE_AU[0] && earthRange.hi <= HABITABLE_AU[1];
+    $("earth").textContent = `Earth ${earthRange.lo.toFixed(3)} to ${earthRange.hi.toFixed(3)} AU from the Sun, `
+      + (ok ? "inside" : "outside") + " the habitable zone";
+  }
+  $("earth").classList.toggle("unbound", alive && !(earthRange.lo >= HABITABLE_AU[0] && earthRange.hi <= HABITABLE_AU[1]));
+  if ($("events").children.length !== events.length) {
+    $("events").innerHTML = events.map((e) => `<li>${esc(e)}</li>`).join("");
+  }
+}
+setInterval(status, 250);
 
 // Ends the run in progress, logging how long it went, so the log stays a plan that replays.
 function closeRun() {
