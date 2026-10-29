@@ -20,3 +20,13 @@ def test_orbits_match_the_elements():
     for name, (a, e, *_rest) in sim.PLANETS.items():
         assert abs(snap[name]["a_au"] - a) / a < 0.01, name
         assert abs(snap[name]["e"] - e) < 0.01, name
+
+
+def test_a_century_keeps_the_planets_where_they_were():
+    bodies = sim.solar_system()
+    result = sim.run(bodies, 100)
+    assert result.events == []
+    assert result.energy_error < 1e-5
+    for name in sim.PLANETS:
+        assert abs(result.after[name]["a_au"] - result.before[name]["a_au"]) / result.before[name]["a_au"] < 0.01
+    assert result.after["Earth"]["stayed_habitable"]
