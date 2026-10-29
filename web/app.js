@@ -184,6 +184,12 @@ function closeRun() {
   universe.current = null;
 }
 
+$("reset").onclick = () => {
+  $("preset").value = "";
+  $("question").textContent = "";
+  load([]);
+};
+
 $("preset").onchange = async (e) => {
   if (!e.target.value) return;
   const saved = await (await fetch(`plans/${e.target.value}.json`)).json();
