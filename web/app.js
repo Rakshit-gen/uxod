@@ -1,3 +1,4 @@
+import { norm, orbit, sub } from "./sim.js";
 import { Universe } from "./tools.js";
 
 const COLOURS = { Sun: "#f5c542", Mercury: "#9a9a9a", Venus: "#d9b38c", Earth: "#4f8fe8", Mars: "#d0603a",
@@ -87,6 +88,19 @@ function frame(now) {
 }
 
 const $ = (id) => document.getElementById(id);
+
+function table() {
+  const sun = universe.bodies.find((b) => b.name === "Sun");
+  $("bodies").tBodies[0].innerHTML = universe.bodies.map((b) => {
+    const o = orbit(universe.bodies, b);
+    const from = sun && b !== sun ? norm(sub(b.pos, sun.pos)).toFixed(3) : "";
+    const a = o.bound ? o.a_au.toFixed(3) : o.orbits ? "unbound" : "";
+    return `<tr data-name="${b.name}"><td><span class="swatch" style="background:${colour(b.name)}"></span>${b.name}</td>`
+      + `<td class="num">${from}</td><td class="num${o.orbits && !o.bound ? " unbound" : ""}">${a}</td>`
+      + `<td class="num">${o.orbits ? o.e.toFixed(3) : ""}</td></tr>`;
+  }).join("");
+}
+setInterval(table, 250);
 $("play").onclick = () => {
   clock.playing = !clock.playing;
   $("play").textContent = clock.playing ? "Pause" : "Play";
