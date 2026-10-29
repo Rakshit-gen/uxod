@@ -73,3 +73,17 @@ def to_barycentre(bodies):
     for b in bodies:
         b.pos = b.pos - cp
         b.vel = b.vel - cv
+
+
+def accelerations(pos, mass):
+    d = pos[None, :, :] - pos[:, None, :]
+    r2 = (d**2).sum(-1)
+    np.fill_diagonal(r2, np.inf)
+    return G * (d * (mass[None, :] / r2**1.5)[:, :, None]).sum(1), r2
+
+
+def energy(pos, vel, mass):
+    kinetic = 0.5 * (mass * (vel**2).sum(1)).sum()
+    d = np.sqrt(((pos[None] - pos[:, None]) ** 2).sum(-1))
+    i, j = np.triu_indices(len(mass), 1)
+    return kinetic - G * (mass[i] * mass[j] / d[i, j]).sum()
