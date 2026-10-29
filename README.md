@@ -62,3 +62,17 @@ printed on 29 October 2026; `tests/test_examples.py` replays all of them.
 - A collision is two bodies touching at their real radii, and they always stick.
 - Runs are capped at 5,000 years per call; a century takes about 3.6 s with Mercury in the system.
 - Energy error is printed for every run so you can see when a close pass strained the integrator.
+
+## Measured
+
+Local runs on an Apple M4 laptop, Python 3.13, numpy, 29 October 2026.
+
+| What | Value | How |
+|---|---|---|
+| Energy error, real solar system, 100 years | 6.2e-7 | `sim.run(sim.solar_system(), 100)`: 131,496 steps in 3.6 s |
+| Energy error, real solar system, 1,000 years | 5.9e-6 | same with 1000: 1,317,534 steps in 36.1 s; Earth's a stayed 1.0 AU |
+| Closest approach of a flyby against what was asked | 5.000 AU for 5 AU | `tests/test_tools.py`, a Jupiter-mass rogue at 10 km/s |
+| Slowest example | 11.0 s | `uxod replay examples/jupiter-star.json`, 300 years |
+| Tests | 36 pass in 26 s | `pytest` |
+
+No live model run is in this table yet: the agent loop is tested with a scripted model, not against Groq.
