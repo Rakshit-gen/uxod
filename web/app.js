@@ -1,5 +1,5 @@
 import { norm, orbit, sub } from "./sim.js";
-import { Universe } from "./tools.js";
+import { DIRECTIONS, Universe } from "./tools.js";
 
 const COLOURS = { Sun: "#f5c542", Mercury: "#9a9a9a", Venus: "#d9b38c", Earth: "#4f8fe8", Mars: "#d0603a",
   Jupiter: "#c99b6d", Saturn: "#e2cf8f", Uranus: "#8fd6d9", Neptune: "#4a6fd6" };
@@ -110,6 +110,40 @@ function table() {
   }).join("");
 }
 setInterval(table, 250);
+
+// Ends the run in progress, logging how long it went, so the log stays a plan that replays.
+function closeRun() {
+  const run = universe.current;
+  if (run && run.t > 0) {
+    universe.log.push({ tool: "run", args: { years: run.t / 365.25 } });
+    universe.events.push(...run.events);
+  }
+  universe.current = null;
+}
+
+function act(tool, args) {
+  closeRun();
+  try {
+    universe.call(tool, args);
+    $("error").textContent = "";
+  } catch (e) {
+    universe.log.pop();
+    $("error").textContent = e.message;
+  }
+  table();
+}
+
+for (const sel of document.querySelectorAll(".dirs")) {
+  sel.innerHTML = DIRECTIONS.map((d) => `<option>${d}</option>`).join("");
+}
+$("remove").onclick = () => act("remove_body", { name: selected });
+const fields = (form) => Object.fromEntries([...new FormData(form)].map(([k, v]) => [k, Number.isNaN(+v) ? v : +v]));
+for (const [id, tool, key] of [["scale", "scale_mass", "name"], ["kick", "kick", "name"], ["smash", "smash", "target"]]) {
+  $(id).onsubmit = (e) => {
+    e.preventDefault();
+    act(tool, { [key]: selected, ...fields(e.target) });
+  };
+}
 
 function pick(name) {
   selected = name;

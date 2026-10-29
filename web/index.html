@@ -40,6 +40,27 @@
           <tbody></tbody>
         </table>
       </section>
+      <section class="act">
+        <h2>Do something to <span class="needs-body">Earth</span></h2>
+        <div class="row"><button type="button" id="remove">Delete it</button></div>
+        <form class="row" id="scale">
+          <label>Mass &times; <input name="factor" type="number" step="any" min="0" value="10" required></label>
+          <button>Change mass</button>
+        </form>
+        <form class="row" id="kick">
+          <label>Push <input name="delta_v_kms" type="number" step="any" value="5" required> km/s</label>
+          <select name="direction" class="dirs"></select>
+          <button>Push</button>
+        </form>
+        <form class="row" id="smash">
+          <label>Hit with <input name="impactor_mass" type="number" step="any" min="0" value="0.1" required></label>
+          <select name="mass_unit"><option value="mearth">Earths</option><option value="mjup">Jupiters</option><option value="msun">Suns</option></select>
+          <label>at <input name="speed_kms" type="number" step="any" min="0" value="20" required> km/s</label>
+          <select name="direction" class="dirs"></select>
+          <button>Smash</button>
+        </form>
+        <p id="error" class="error" role="alert"></p>
+      </section>
     </aside>
   </main>
   <script type="module" src="app.js"></script>
