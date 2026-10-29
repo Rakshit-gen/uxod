@@ -6,6 +6,7 @@ import numpy as np
 from . import sim
 
 MASS_UNITS = {"msun": 1.0, "mjup": 9.5479e-4, "mearth": 3.0034e-6}
+MAX_YEARS = 5000
 DIRECTIONS = ("prograde", "retrograde", "outward", "inward", "north", "south")
 
 
@@ -93,6 +94,20 @@ class Universe:
         return {"name": name, "mass_msun": m, "starts_au": round(start, 1),
                 "closest_approach_in_years": round(float(arrive_years), 2)}
 
+    def run(self, years: float):
+        """Moves time forward. Later runs carry on from where the last one stopped."""
+        if not 0 < years <= MAX_YEARS:
+            raise ValueError(f"years must be between 0 and {MAX_YEARS}")
+        r = sim.run(self.bodies, years)
+        self.results.append(r)
+        return {
+            "years": years,
+            "events": r.events or ["nothing collided or left the system"],
+            "energy_error": f"{r.energy_error:.1e}",
+            "bodies": {n: {k: v for k, v in o.items() if k != "mass_msun"} for n, o in r.after.items()},
+            "lost": [n for n in r.before if n not in r.after],
+        }
+
     def _direction(self, b: sim.Body, direction: str) -> np.ndarray:
         if direction not in DIRECTIONS:
             raise ValueError(f"direction must be one of {', '.join(DIRECTIONS)}")
@@ -131,5 +146,7 @@ TOOLS = [
           angle_deg={"type": "number", "description": "where in the ecliptic it comes from", "optional": True},
           inclination_deg={"type": "number", "optional": True},
           radius_km={"type": "number", "optional": True}),
+    _tool("run", f"Simulates the next `years` years (at most {MAX_YEARS}). With Mercury present this takes "
+          "about 3 seconds per 100 years.", years={"type": "number"}),
 ]
 TOOLS_BY_NAME = {t["function"]["name"]: t for t in TOOLS}

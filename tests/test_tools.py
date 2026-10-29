@@ -54,3 +54,22 @@ def test_a_flyby_starts_far_out_on_an_unbound_path():
     assert not rogue["bound"] and abs(rogue["distance_au"] - 100) < 0.1
     assert "already" in u.call("add_flyby", {"name": "rogue", "mass": 1, "mass_unit": "mjup",
                                              "closest_approach_au": 5, "speed_kms": 10})["error"]
+
+
+def test_a_flyby_gets_as_close_as_asked_when_predicted():
+    u = lone_sun()
+    out = u.call("add_flyby", {"name": "Rogue", "mass": 1, "mass_unit": "mjup", "closest_approach_au": 5,
+                               "speed_kms": 10, "angle_deg": 40, "inclination_deg": 30})
+    first = u.call("run", {"years": out["closest_approach_in_years"]})
+    assert abs(first["bodies"]["Rogue"]["distance_au"] - 5) < 0.01
+    later = u.call("run", {"years": 20})
+    assert abs(later["bodies"]["Rogue"]["sun_distance_range_au"][0] - 5) < 0.01
+
+
+def test_runs_carry_on_from_each_other_and_are_capped():
+    u = tools.Universe()
+    u.call("run", {"years": 1})
+    u.call("run", {"years": 1})
+    assert len(u.results) == 2
+    assert u.results[1].before["Earth"]["distance_au"] == u.results[0].after["Earth"]["distance_au"]
+    assert "between 0 and 5000" in u.call("run", {"years": 6000})["error"]
