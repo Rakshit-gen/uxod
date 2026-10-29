@@ -149,6 +149,6 @@ TOOLS = [
           inclination_deg={"type": "number", "optional": True},
           radius_km={"type": "number", "optional": True}),
     _tool("run", f"Simulates the next `years` years (at most {MAX_YEARS}). With Mercury present this takes "
-          "about 3 seconds per 100 years.", years={"type": "number"}),
+          "about 4 seconds per 100 years on a laptop, so keep runs to what the question needs.", years={"type": "number"}),
 ]
 TOOLS_BY_NAME = {t["function"]["name"]: t for t in TOOLS}
