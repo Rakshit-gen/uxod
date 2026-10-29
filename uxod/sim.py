@@ -144,7 +144,7 @@ def time_step(r2, vel, pair_mass, base):
     return min(base, 0.02 * free_fall, 0.05 * r / max(v, 1e-12))
 
 
-def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
+def run(bodies: list[Body], years: float, frames: int = 600, max_steps: int = 3_000_000) -> Result:
     """Advances the bodies in place by `years` with a kick-drift-kick
     leapfrog. Bodies that touch merge, conserving momentum; bodies that
     leave are dropped once unbound and EJECTED_AU from the barycentre."""
@@ -198,6 +198,9 @@ def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
     track()
     next_frame = every
     while t < end:
+        if steps >= max_steps:
+            events.append(f"stopped after {steps} steps at year {t / DAYS_PER_YEAR:.1f}: an encounter needed steps too short to finish")
+            break
         dt = min(time_step(r2, vel, pair_mass, base), end - t)
         vel += 0.5 * dt * acc
         pos += dt * vel
