@@ -87,3 +87,33 @@ def energy(pos, vel, mass):
     d = np.sqrt(((pos[None] - pos[:, None]) ** 2).sum(-1))
     i, j = np.triu_indices(len(mass), 1)
     return kinetic - G * (mass[i] * mass[j] / d[i, j]).sum()
+
+
+def primary(bodies, body):
+    """The body this one orbits: the most massive other body, by default the Sun."""
+    others = [b for b in bodies if b is not body]
+    return max(others, key=lambda b: b.mass) if others else None
+
+
+def orbit(bodies, body):
+    """Semi-major axis, eccentricity and distance relative to the primary."""
+    host = primary(bodies, body)
+    if host is None:
+        return {"orbits": None}
+    r = body.pos - host.pos
+    v = body.vel - host.vel
+    mu = G * (host.mass + body.mass)
+    dist = float(np.linalg.norm(r))
+    specific = float(v @ v) / 2 - mu / dist
+    h = np.cross(r, v)
+    e = float(np.sqrt(max(0.0, 1 + 2 * specific * (h @ h) / mu**2)))
+    out = {"orbits": host.name, "distance_au": round(dist, 4), "e": round(e, 4), "bound": specific < 0}
+    if specific < 0:
+        a = -mu / (2 * specific)
+        out["a_au"] = round(a, 4)
+        out["period_years"] = round(float(2 * np.pi * np.sqrt(a**3 / mu)) / DAYS_PER_YEAR, 3)
+    return out
+
+
+def snapshot(bodies):
+    return {b.name: {"mass_msun": b.mass, **orbit(bodies, b)} for b in bodies}
