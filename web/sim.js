@@ -207,6 +207,53 @@ export class Run {
     this.t += dt;
     this.steps += 1;
     this.track();
+    if (!this.mergeTouching() && this.steps % 200 === 0) this.dropLeaving();
+  }
+
+  year() {
+    return (this.t / DAYS_PER_YEAR).toFixed(2);
+  }
+
+  // Merges the first pair that touches, conserving momentum.
+  mergeTouching() {
+    const { bodies, r2 } = this;
+    for (let i = 0; i < bodies.length; i++) {
+      for (let j = i + 1; j < bodies.length; j++) {
+        if (r2[i][j] >= (bodies[i].radius + bodies[j].radius) ** 2) continue;
+        const [big, small] = bodies[i].mass >= bodies[j].mass ? [bodies[i], bodies[j]] : [bodies[j], bodies[i]];
+        const before = energy(bodies);
+        const m = big.mass + small.mass;
+        big.vel = big.vel.map((v, k) => (big.mass * v + small.mass * small.vel[k]) / m);
+        big.pos = big.pos.map((p, k) => (big.mass * p + small.mass * small.pos[k]) / m);
+        big.radius = Math.max(big.radius, small.radius);
+        big.mass = m;
+        bodies.splice(bodies.indexOf(small), 1);
+        this.events.push(`year ${this.year()}: ${small.name} hit ${big.name} and merged into it`);
+        this.lost += before - energy(bodies);
+        ({ acc: this.acc, r2: this.r2 } = accelerations(bodies));
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Drops bodies unbound from the anchor, EJECTED_AU from it and moving away.
+  dropLeaving() {
+    const a = anchor(this.bodies);
+    const gone = this.bodies.filter((b) => {
+      if (b === a) return false;
+      const r = sub(b.pos, a.pos), v = sub(b.vel, a.vel);
+      const dist = norm(r);
+      return dist > EJECTED_AU && dot(r, v) > 0 && dot(v, v) / 2 > (G * (a.mass + b.mass)) / dist;
+    });
+    for (const b of gone) {
+      const before = energy(this.bodies);
+      this.bodies.splice(this.bodies.indexOf(b), 1);
+      const speed = norm(sub(b.vel, anchor(this.bodies).vel)) / KMS;
+      this.events.push(`year ${this.year()}: ${b.name} left the system at ${speed.toFixed(1)} km/s`);
+      this.lost += before - energy(this.bodies);
+    }
+    if (gone.length) ({ acc: this.acc, r2: this.r2 } = accelerations(this.bodies));
   }
 
   track() {
