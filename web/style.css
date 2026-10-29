@@ -32,3 +32,5 @@ td { padding: 3px 6px 3px 0; border-top: 1px solid var(--line); }
 td.num, th:not(:first-child) { text-align: right; }
 .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
 .unbound { color: var(--bad); }
+tbody tr { cursor: pointer; }
+tr.picked td { color: var(--pick); }

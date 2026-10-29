@@ -14,6 +14,7 @@ const view = { extent: 40 }; // AU at the edge of the view, before the square-ro
 const clock = { playing: true, yearsPerSecond: 2, years: 0, last: 0 };
 const trails = new Map(); // name -> recent positions
 const TRAIL = 240;
+let selected = "Earth";
 
 function fit() {
   const r = sky.getBoundingClientRect();
@@ -51,6 +52,12 @@ function draw() {
     g.beginPath();
     g.arc(x, y, (b.name === "Sun" ? 7 : 4) * devicePixelRatio, 0, 2 * Math.PI);
     g.fill();
+    if (b.name === selected) {
+      g.strokeStyle = "#e8b04a";
+      g.beginPath();
+      g.arc(x, y, 10 * devicePixelRatio, 0, 2 * Math.PI);
+      g.stroke();
+    }
     g.fillStyle = "#8a8f97";
     g.fillText(b.name, x + 8 * devicePixelRatio, y - 8 * devicePixelRatio);
   }
@@ -97,12 +104,35 @@ function table() {
     const o = orbit(universe.bodies, b);
     const from = sun && b !== sun ? norm(sub(b.pos, sun.pos)).toFixed(3) : "";
     const a = o.bound ? o.a_au.toFixed(3) : o.orbits ? "unbound" : "";
-    return `<tr data-name="${esc(b.name)}"><td><span class="swatch" style="background:${colour(b.name)}"></span>${esc(b.name)}</td>`
+    return `<tr data-name="${esc(b.name)}"${b.name === selected ? ' class="picked"' : ""}><td><span class="swatch" style="background:${colour(b.name)}"></span>${esc(b.name)}</td>`
       + `<td class="num">${from}</td><td class="num${o.orbits && !o.bound ? " unbound" : ""}">${a}</td>`
       + `<td class="num">${o.orbits ? o.e.toFixed(3) : ""}</td></tr>`;
   }).join("");
 }
 setInterval(table, 250);
+
+function pick(name) {
+  selected = name;
+  table();
+  for (const el of document.querySelectorAll(".needs-body")) el.textContent = name;
+}
+$("bodies").onclick = (e) => {
+  const row = e.target.closest("tr[data-name]");
+  if (row) pick(row.dataset.name);
+};
+// A click on the sky picks the nearest body within 20 pixels.
+sky.onclick = (e) => {
+  const r = sky.getBoundingClientRect();
+  const px = (e.clientX - r.left) * devicePixelRatio, py = (e.clientY - r.top) * devicePixelRatio;
+  const centre = universe.anchor().pos;
+  let best = null, bestD = 20 * devicePixelRatio;
+  for (const b of universe.bodies) {
+    const [x, y] = toScreen(b.pos, centre);
+    const d = Math.hypot(x - px, y - py);
+    if (d < bestD) [best, bestD] = [b.name, d];
+  }
+  if (best) pick(best);
+};
 $("play").onclick = () => {
   clock.playing = !clock.playing;
   $("play").textContent = clock.playing ? "Pause" : "Play";
