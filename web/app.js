@@ -145,6 +145,20 @@ for (const [id, tool, key] of [["scale", "scale_mass", "name"], ["kick", "kick",
   };
 }
 
+$("flyby").onsubmit = (e) => {
+  e.preventDefault();
+  closeRun();
+  try {
+    const out = universe.call("add_flyby", fields(e.target));
+    $("arrives").textContent = `closest in ${out.closest_approach_in_years} years`;
+    $("error").textContent = "";
+  } catch (err) {
+    universe.log.pop();
+    $("error").textContent = err.message;
+  }
+  table();
+};
+
 function pick(name) {
   selected = name;
   table();

@@ -61,6 +61,26 @@
         </form>
         <p id="error" class="error" role="alert"></p>
       </section>
+      <section>
+        <h2>Send something through</h2>
+        <form id="flyby">
+          <div class="row">
+            <label>Name <input name="name" value="Black hole" maxlength="24" required></label>
+          </div>
+          <div class="row">
+            <label>Mass <input name="mass" type="number" step="any" min="0" value="10" required></label>
+            <select name="mass_unit"><option value="msun">Suns</option><option value="mjup">Jupiters</option><option value="mearth">Earths</option></select>
+          </div>
+          <div class="row">
+            <label>Closest to the Sun <input name="closest_approach_au" type="number" step="any" min="0" value="20" required> AU</label>
+          </div>
+          <div class="row">
+            <label>Speed <input name="speed_kms" type="number" step="any" min="0" value="50" required> km/s</label>
+            <label>from <input name="angle_deg" type="number" step="any" value="120"> &deg;</label>
+          </div>
+          <div class="row"><button>Send it</button> <output id="arrives"></output></div>
+        </form>
+      </section>
     </aside>
   </main>
   <script type="module" src="app.js"></script>
