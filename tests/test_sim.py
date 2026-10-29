@@ -75,3 +75,13 @@ def test_a_close_pass_in_the_middle_of_a_run_is_caught():
     out = u.add_flyby("Rogue", 1, "mjup", 5, 30)
     result = u.call("run", {"years": 2 * out["closest_approach_in_years"]})
     assert abs(result["bodies"]["Rogue"]["sun_distance_range_au"][0] - 5) < 0.002
+
+
+def test_a_flyby_from_beyond_the_ejection_distance_still_arrives():
+    from uxod import tools
+
+    u = tools.Universe()
+    out = u.add_flyby("Rogue", 1, "mjup", 50, 20)
+    assert out["starts_au"] > sim.EJECTED_AU
+    result = u.call("run", {"years": 1})
+    assert "Rogue" in result["bodies"]

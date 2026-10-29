@@ -7,7 +7,7 @@ import numpy as np
 G = 0.01720209895**2  # Gauss's constant squared: AU^3 / (Msun day^2)
 KMS = 86400 / 1.495978707e8  # km/s in AU/day
 DAYS_PER_YEAR = 365.25
-EJECTED_AU = 200  # unbound and this far from the barycentre
+EJECTED_AU = 200  # unbound, this far from the barycentre and moving away
 HABITABLE_AU = (0.95, 1.67)  # a rough habitable zone for today's Sun
 
 # J2000 elements from JPL's "Approximate Positions of the Planets" (Standish):
@@ -147,7 +147,7 @@ def time_step(r2, vel, pair_mass, base):
 def run(bodies: list[Body], years: float, frames: int = 600, max_steps: int = 3_000_000) -> Result:
     """Advances the bodies in place by `years` with a kick-drift-kick
     leapfrog. Bodies that touch merge, conserving momentum; bodies that
-    leave are dropped once unbound and EJECTED_AU from the barycentre."""
+    leave are dropped once unbound, EJECTED_AU from the barycentre and receding."""
     before = snapshot(bodies)
     names = [b.name for b in bodies]
     events: list[str] = []
@@ -240,8 +240,8 @@ def run(bodies: list[Body], years: float, frames: int = 600, max_steps: int = 3_
             lost += before_e - energy(pos, vel, mass)
             acc, r2 = accelerations(pos, mass)
         elif steps % 200 == 0:
-            gone = [b for b in bodies if np.linalg.norm(b.pos) > EJECTED_AU and len(bodies) > 1
-                    and not orbit(bodies, b)["bound"]]
+            gone = [b for b in bodies if np.linalg.norm(b.pos) > EJECTED_AU and b.pos @ b.vel > 0
+                    and len(bodies) > 1 and not orbit(bodies, b)["bound"]]
             if gone:
                 flush()
             for b in gone:
