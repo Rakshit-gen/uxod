@@ -129,3 +129,94 @@ export function orbit(bodies, body) {
 export function anchor(bodies) {
   return bodies.find((b) => b.name === "Sun") || bodies.reduce((a, b) => (b.mass > a.mass ? b : a));
 }
+
+export const EJECTED_AU = 200;
+export const HABITABLE_AU = [0.95, 1.67];
+const round3 = (x) => Math.round(x * 1000) / 1000;
+
+// A run of `years`, stepped a little at a time so a page can draw between
+// steps. Same leapfrog, step size, merges and ejections as sim.run.
+export class Run {
+  constructor(bodies, years, maxSteps = 3_000_000) {
+    this.bodies = bodies;
+    this.end = years * DAYS_PER_YEAR;
+    this.maxSteps = maxSteps;
+    this.t = 0;
+    this.steps = 0;
+    this.events = [];
+    this.lost = 0;
+    let shortest = Infinity;
+    for (const b of bodies) {
+      const o = orbit(bodies, b);
+      if (o.period_years) shortest = Math.min(shortest, round3(o.period_years));
+    }
+    if (shortest === Infinity) shortest = 1;
+    this.base = Math.min((shortest * DAYS_PER_YEAR) / 60, 4);
+    this.e0 = energy(bodies);
+    ({ acc: this.acc, r2: this.r2 } = accelerations(bodies));
+    this.closest = {};
+    this.farthest = {};
+    this.track();
+  }
+
+  get done() {
+    return this.t >= this.end || this.steps >= this.maxSteps;
+  }
+
+  get energyError() {
+    return Math.abs((energy(this.bodies) + this.lost - this.e0) / this.e0);
+  }
+
+  timeStep() {
+    const { bodies, r2 } = this;
+    let best = Infinity, bi = 0, bj = 1;
+    for (let i = 0; i < bodies.length; i++) {
+      for (let j = i + 1; j < bodies.length; j++) {
+        const s = r2[i][j] ** 1.5 / (bodies[i].mass + bodies[j].mass);
+        if (s < best) [best, bi, bj] = [s, i, j];
+      }
+    }
+    const r = Math.sqrt(r2[bi][bj]);
+    const v = norm(sub(bodies[bi].vel, bodies[bj].vel));
+    const freeFall = Math.sqrt(r ** 3 / (G * (bodies[bi].mass + bodies[bj].mass)));
+    return Math.min(this.base, 0.02 * freeFall, (0.05 * r) / Math.max(v, 1e-12));
+  }
+
+  // Advances until `days` more have passed or the run ends.
+  advance(days = Infinity) {
+    const stop = Math.min(this.end, this.t + days);
+    while (this.t < stop) {
+      if (this.steps >= this.maxSteps) {
+        this.events.push(`stopped after ${this.steps} steps at year ${(this.t / DAYS_PER_YEAR).toFixed(1)}: an encounter needed steps too short to finish`);
+        return;
+      }
+      this.step(Math.min(this.timeStep(), this.end - this.t));
+    }
+  }
+
+  step(dt) {
+    const { bodies } = this;
+    bodies.forEach((b, i) => {
+      for (let k = 0; k < 3; k++) b.vel[k] += 0.5 * dt * this.acc[i][k];
+      for (let k = 0; k < 3; k++) b.pos[k] += dt * b.vel[k];
+    });
+    ({ acc: this.acc, r2: this.r2 } = accelerations(bodies));
+    bodies.forEach((b, i) => {
+      for (let k = 0; k < 3; k++) b.vel[k] += 0.5 * dt * this.acc[i][k];
+    });
+    this.t += dt;
+    this.steps += 1;
+    this.track();
+  }
+
+  track() {
+    const sun = this.bodies.find((b) => b.name === "Sun");
+    if (!sun) return;
+    for (const b of this.bodies) {
+      if (b === sun) continue;
+      const d = norm(sub(b.pos, sun.pos));
+      this.closest[b.name] = Math.min(this.closest[b.name] ?? Infinity, d);
+      this.farthest[b.name] = Math.max(this.farthest[b.name] ?? 0, d);
+    }
+  }
+}
