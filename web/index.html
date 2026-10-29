@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Orbital Destroyer</title>
+  <meta name="description" content="Wreck the solar system and watch an n-body simulation work out what happens.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Universe Extrapolater Orbital Destroyer</h1>
+    <p>Delete the Sun, smash Earth, send a black hole through. The planets start where they were on
+      1 January 2000 and move under Newtonian gravity, worked out in your browser.</p>
+  </header>
+  <main>
+    <section class="view">
+      <canvas id="sky" role="img" aria-label="The Sun and planets, seen from above"></canvas>
+    </section>
+    <aside class="panel" id="panel"></aside>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
