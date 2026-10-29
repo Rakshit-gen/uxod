@@ -73,3 +73,9 @@ def test_runs_carry_on_from_each_other_and_are_capped():
     assert len(u.results) == 2
     assert u.results[1].before["Earth"]["distance_au"] == u.results[0].after["Earth"]["distance_au"]
     assert "between 0 and 5000" in u.call("run", {"years": 6000})["error"]
+
+
+def test_the_sun_cant_be_kicked_along_an_orbit_it_doesnt_have():
+    u = tools.Universe()
+    out = u.call("kick", {"name": "Sun", "delta_v_kms": 1, "direction": "prograde"})
+    assert "orbits nothing" in out["error"]

@@ -112,6 +112,8 @@ class Universe:
         if direction not in DIRECTIONS:
             raise ValueError(f"direction must be one of {', '.join(DIRECTIONS)}")
         host = sim.primary(self.bodies, b)
+        if host is None:
+            raise ValueError(f"{b.name} is the heaviest body and orbits nothing, so {direction} means nothing")
         r, v = b.pos - host.pos, b.vel - host.vel
         unit = {"prograde": v, "retrograde": -v, "outward": r, "inward": -r,
                 "north": np.cross(r, v), "south": -np.cross(r, v)}[direction]
