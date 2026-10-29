@@ -85,3 +85,9 @@ def test_a_flyby_from_beyond_the_ejection_distance_still_arrives():
     assert out["starts_au"] > sim.EJECTED_AU
     result = u.call("run", {"years": 1})
     assert "Rogue" in result["bodies"]
+
+
+def test_the_heaviest_body_orbits_nothing():
+    snap = sim.snapshot(sim.solar_system())
+    assert snap["Sun"]["orbits"] is None
+    assert snap["Jupiter"]["orbits"] == "Sun"
