@@ -49,3 +49,11 @@ def test_a_stopped_earth_falls_into_the_sun():
     assert any("Earth hit Sun" in e for e in result.events)
     assert "Earth" not in result.after
     assert abs(by_name(bodies, "Sun").mass - sun_mass - 3.0404e-6) < 1e-12
+
+
+def test_merging_conserves_momentum():
+    bodies = sim.solar_system()
+    by_name(bodies, "Earth").vel *= 0.02
+    momentum = sum(b.mass * b.vel for b in bodies)
+    sim.run(bodies, 1)
+    assert np.allclose(sum(b.mass * b.vel for b in bodies), momentum, atol=1e-12)
