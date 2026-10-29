@@ -1,6 +1,6 @@
 """An n-body simulation of the solar system, in AU, days and solar masses."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -31,6 +31,19 @@ class Body:
     pos: np.ndarray  # AU
     vel: np.ndarray  # AU/day
     radius: float  # AU
+
+
+@dataclass
+class Result:
+    years: float
+    events: list[str]
+    before: dict[str, dict]
+    after: dict[str, dict]
+    energy_error: float
+    steps: int
+    names: list[str] = field(default_factory=list)
+    frames: list[list] = field(default_factory=list)  # per frame, [x, y] or None per name
+    frame_years: list[float] = field(default_factory=list)
 
 
 def from_elements(a, e, inc, mean_long, long_peri, node, mu):
@@ -117,3 +130,49 @@ def orbit(bodies, body):
 
 def snapshot(bodies):
     return {b.name: {"mass_msun": b.mass, **orbit(bodies, b)} for b in bodies}
+
+
+def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
+    """Advances the bodies in place by `years` with a kick-drift-kick leapfrog."""
+    before = snapshot(bodies)
+    names = [b.name for b in bodies]
+    events: list[str] = []
+    end = years * DAYS_PER_YEAR
+    shortest = min((o["period_years"] for o in before.values() if o.get("period_years")), default=1.0)
+    base = min(shortest * DAYS_PER_YEAR / 60, 4.0)
+
+    pos = np.array([b.pos for b in bodies])
+    vel = np.array([b.vel for b in bodies])
+    mass = np.array([b.mass for b in bodies])
+    e0 = energy(pos, vel, mass)
+    acc, r2 = accelerations(pos, mass)
+    t, steps = 0.0, 0
+    every = end / frames
+    result = Result(years, events, before, {}, 0.0, 0, names)
+
+    def record():
+        result.frames.append([[round(float(p[0]), 4), round(float(p[1]), 4)] for p in pos])
+        result.frame_years.append(round(t / DAYS_PER_YEAR, 3))
+
+    record()
+    next_frame = every
+    while t < end:
+        dt = min(base, end - t)
+        vel += 0.5 * dt * acc
+        pos += dt * vel
+        acc, r2 = accelerations(pos, mass)
+        vel += 0.5 * dt * acc
+        t += dt
+        steps += 1
+        if t >= next_frame:
+            record()
+            next_frame += every
+
+    for b, p, v in zip(bodies, pos, vel):
+        b.pos, b.vel = p.copy(), v.copy()
+    if result.frame_years[-1] != round(t / DAYS_PER_YEAR, 3):
+        record()
+    result.after = snapshot(bodies)
+    result.steps = steps
+    result.energy_error = float(abs((energy(pos, vel, mass) - e0) / e0))
+    return result
