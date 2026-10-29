@@ -30,3 +30,12 @@ def test_a_century_keeps_the_planets_where_they_were():
     for name in sim.PLANETS:
         assert abs(result.after[name]["a_au"] - result.before[name]["a_au"]) / result.before[name]["a_au"] < 0.01
     assert result.after["Earth"]["stayed_habitable"]
+
+
+def test_without_the_sun_everything_leaves():
+    bodies = sim.solar_system()
+    bodies.remove(by_name(bodies, "Sun"))
+    result = sim.run(bodies, 60)
+    gone = [e.split(": ")[1].split()[0] for e in result.events]
+    assert {"Mercury", "Venus", "Earth"} <= set(gone)
+    assert "Earth left the system at 30.3 km/s" in " ".join(result.events)
