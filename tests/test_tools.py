@@ -36,3 +36,21 @@ def test_a_smash_conserves_momentum():
     assert np.allclose(earth.mass * earth.vel, m * v + impactor * (v + hit), rtol=0, atol=1e-15)
     assert abs(out["delta_v_kms"] - 20 * impactor / earth.mass) < 1e-4
     assert out["now"]["a_au"] < 1
+
+
+def lone_sun():
+    u = tools.Universe()
+    for name in sim.PLANETS:
+        u.remove_body(name)
+    return u
+
+
+def test_a_flyby_starts_far_out_on_an_unbound_path():
+    u = lone_sun()
+    out = u.call("add_flyby", {"name": "Rogue", "mass": 1, "mass_unit": "mjup", "closest_approach_au": 5,
+                               "speed_kms": 10, "angle_deg": 40, "inclination_deg": 30})
+    assert out["starts_au"] == 100
+    rogue = u.list_bodies()["Rogue"]
+    assert not rogue["bound"] and abs(rogue["distance_au"] - 100) < 0.1
+    assert "already" in u.call("add_flyby", {"name": "rogue", "mass": 1, "mass_unit": "mjup",
+                                             "closest_approach_au": 5, "speed_kms": 10})["error"]
