@@ -57,3 +57,9 @@ def test_merging_conserves_momentum():
     momentum = sum(b.mass * b.vel for b in bodies)
     sim.run(bodies, 1)
     assert np.allclose(sum(b.mass * b.vel for b in bodies), momentum, atol=1e-12)
+
+
+def test_frames_cover_the_whole_run():
+    result = sim.run(sim.solar_system(), 5, frames=50)
+    assert result.frame_years[0] == 0 and result.frame_years[-1] == 5
+    assert all(len(f) == len(result.names) for f in result.frames)
