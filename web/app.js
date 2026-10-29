@@ -137,7 +137,9 @@ for (const sel of document.querySelectorAll(".dirs")) {
   sel.innerHTML = DIRECTIONS.map((d) => `<option>${d}</option>`).join("");
 }
 $("remove").onclick = () => act("remove_body", { name: selected });
-const fields = (form) => Object.fromEntries([...new FormData(form)].map(([k, v]) => [k, Number.isNaN(+v) ? v : +v]));
+// Number inputs become numbers; everything else, a name like "2031" included, stays text.
+const fields = (form) => Object.fromEntries([...form.elements].filter((el) => el.name)
+  .map((el) => [el.name, el.type === "number" ? +el.value : el.value]));
 for (const [id, tool, key] of [["scale", "scale_mass", "name"], ["kick", "kick", "name"], ["smash", "smash", "target"]]) {
   $(id).onsubmit = (e) => {
     e.preventDefault();
