@@ -143,7 +143,9 @@ def time_step(r2, vel, pair_mass, base):
 
 
 def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
-    """Advances the bodies in place by `years` with a kick-drift-kick leapfrog."""
+    """Advances the bodies in place by `years` with a kick-drift-kick
+    leapfrog. Bodies that touch merge, conserving momentum; bodies that
+    leave are kept."""
     before = snapshot(bodies)
     names = [b.name for b in bodies]
     events: list[str] = []
@@ -151,19 +153,30 @@ def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
     shortest = min((o["period_years"] for o in before.values() if o.get("period_years")), default=1.0)
     base = min(shortest * DAYS_PER_YEAR / 60, 4.0)
 
-    pos = np.array([b.pos for b in bodies])
-    vel = np.array([b.vel for b in bodies])
-    mass = np.array([b.mass for b in bodies])
-    pair_mass = mass[None] + mass[:, None]
+    def arrays():
+        return (np.array([b.pos for b in bodies]), np.array([b.vel for b in bodies]),
+                np.array([b.mass for b in bodies]), np.array([b.radius for b in bodies]))
+
+    def pairs():
+        return mass[None] + mass[:, None], (radii[None] + radii[:, None]) ** 2
+
+    pos, vel, mass, radii = arrays()
+    pair_mass, reach = pairs()
     e0 = energy(pos, vel, mass)
+    lost = 0.0  # energy carried off by merges, so it isn't counted as error
     acc, r2 = accelerations(pos, mass)
     t, steps = 0.0, 0
     every = end / frames
     result = Result(years, events, before, {}, 0.0, 0, names)
 
     def record():
-        result.frames.append([[round(float(p[0]), 4), round(float(p[1]), 4)] for p in pos])
+        where = {b.name: [round(float(b.pos[0]), 4), round(float(b.pos[1]), 4)] for b in bodies}
+        result.frames.append([where.get(n) for n in names])
         result.frame_years.append(round(t / DAYS_PER_YEAR, 3))
+
+    def sync():
+        for b, p, v in zip(bodies, pos, vel):
+            b.pos, b.vel = p.copy(), v.copy()
 
     record()
     next_frame = every
@@ -175,15 +188,33 @@ def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
         vel += 0.5 * dt * acc
         t += dt
         steps += 1
+
+        touching = np.argwhere(np.triu(r2 < reach, 1)) if (r2 < reach).any() else ()
+        if len(touching) or t >= next_frame:
+            sync()
+        if len(touching):
+            i, j = touching[0]
+            big, small = (bodies[i], bodies[j]) if mass[i] >= mass[j] else (bodies[j], bodies[i])
+            before_e = energy(pos, vel, mass)
+            m = big.mass + small.mass
+            big.vel = (big.mass * big.vel + small.mass * small.vel) / m
+            big.pos = (big.mass * big.pos + small.mass * small.pos) / m
+            big.radius = max(big.radius, small.radius)
+            big.mass = m
+            bodies.remove(small)
+            events.append(f"year {t / DAYS_PER_YEAR:.2f}: {small.name} hit {big.name} and merged into it")
+            pos, vel, mass, radii = arrays()
+            pair_mass, reach = pairs()
+            lost += before_e - energy(pos, vel, mass)
+            acc, r2 = accelerations(pos, mass)
         if t >= next_frame:
             record()
             next_frame += every
 
-    for b, p, v in zip(bodies, pos, vel):
-        b.pos, b.vel = p.copy(), v.copy()
+    sync()
     if result.frame_years[-1] != round(t / DAYS_PER_YEAR, 3):
         record()
     result.after = snapshot(bodies)
     result.steps = steps
-    result.energy_error = float(abs((energy(pos, vel, mass) - e0) / e0))
+    result.energy_error = float(abs((energy(pos, vel, mass) + lost - e0) / e0))
     return result
