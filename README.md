@@ -30,3 +30,16 @@ export GROQ_API_KEY=...                           # https://console.groq.com/key
 ```
 
 The model defaults to `openai/gpt-oss-120b` on Groq; set `UXOD_MODEL` to use another.
+
+## What the examples show
+
+Each of these is a plan in `examples/`, replayed with `uxod replay`. The numbers are what the runs
+printed on 29 October 2026; `tests/test_examples.py` replays all of them.
+
+| Plan | What happened |
+|---|---|
+| `black-hole.json`: 10 solar masses, 20 AU from the Sun, 50 km/s | Neptune was thrown out (e 1.06). Saturn and Uranus were knocked onto orbits that dip to 0.30 and 0.35 AU, inside Earth's. Jupiter's semi-major axis went from 5.20 to 9.94 AU. Earth's eccentricity only went from 0.017 to 0.024. |
+| `earth-smash.json`: a Mars-mass body hits Earth head-on at 20 km/s | Earth dropped to a 0.888 AU orbit with e 0.108, swinging between 0.792 and 0.984 AU, out of the habitable zone at its closest. |
+| `half-sun.json`: the Sun loses half its mass at once | In 300 years Mars, Earth, Saturn, Jupiter and Venus left, Mars first at year 116 and Earth at year 180. Mercury stayed bound (e 0.59), and Uranus and Neptune stayed on stretched orbits with e 0.91 and 0.99. |
+| `jupiter-star.json`: Jupiter 80 times heavier | Within 300 years Saturn was on an escape orbit (e 1.04) and Uranus's eccentricity went from 0.05 to 0.40. Earth stayed between 0.971 and 1.029 AU. |
+| `no-sun.json`: the Sun vanishes | The planets went off in straight lines. Mercury passed 200 AU (measured from Jupiter) at year 19.7. |
