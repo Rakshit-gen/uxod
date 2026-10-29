@@ -1,0 +1,7 @@
+.venv
+out
+tests
+uxod
+uxod.egg-info
+web/test
+.github

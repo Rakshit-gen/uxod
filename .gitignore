@@ -3,3 +3,5 @@ __pycache__/
 .venv/
 out/
 *.egg-info/
+web/plans/
+.vercel

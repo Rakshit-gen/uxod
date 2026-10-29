@@ -1,0 +1,6 @@
+{
+  "framework": null,
+  "installCommand": "",
+  "buildCommand": "mkdir -p web/plans && cp examples/*.json web/plans/",
+  "outputDirectory": "web"
+}
