@@ -45,3 +45,10 @@ input[type=number] { width: 7ch; }
 #question:empty { display: none; }
 code { font-family: var(--mono); font-size: 13px; }
 input[type=file] { padding: 2px; max-width: 100%; }
+@media (max-width: 860px) {
+  header { padding: 14px 16px 10px; }
+  main { grid-template-columns: 1fr; min-height: 0; }
+  .view { border-right: 0; border-bottom: 1px solid var(--line); }
+  #sky { height: auto; aspect-ratio: 1; min-height: 0; }
+  .panel { max-height: none; padding: 16px; }
+}
