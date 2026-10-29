@@ -43,3 +43,22 @@ printed on 29 October 2026; `tests/test_examples.py` replays all of them.
 | `half-sun.json`: the Sun loses half its mass at once | In 300 years Mars, Earth, Saturn, Jupiter and Venus left, Mars first at year 116 and Earth at year 180. Mercury stayed bound (e 0.59), and Uranus and Neptune stayed on stretched orbits with e 0.91 and 0.99. |
 | `jupiter-star.json`: Jupiter 80 times heavier | Within 300 years Saturn was on an escape orbit (e 1.04) and Uranus's eccentricity went from 0.05 to 0.40. Earth stayed between 0.971 and 1.029 AU. |
 | `no-sun.json`: the Sun vanishes | The planets went off in straight lines. Mercury passed 200 AU (measured from Jupiter) at year 19.7. |
+
+## How it works
+
+- `uxod/sim.py` places the Sun and planets from JPL's J2000 orbital elements (Standish, "Approximate
+  Positions of the Planets") and steps them with a kick-drift-kick leapfrog. The step is a sixtieth of
+  the shortest orbit, cut further when two bodies get close. Bodies that touch merge, conserving
+  momentum. A body leaves the system once it is unbound from the Sun, 200 AU away and moving away.
+- `uxod/tools.py` is what the agent can do: remove a body, scale its mass, kick it, smash something
+  into it, send a star or black hole past, and run time forward.
+- `uxod/agent.py` sends the question and the tool list to Groq, runs the calls the model asks for, and
+  hands back the results until the model writes its report. It is told to use only numbers the tools
+  returned and to report the energy error.
+
+## Limits
+
+- Point masses and Newtonian gravity. No tides, no relativity, no Moon (Earth carries the Moon's mass).
+- A collision is two bodies touching at their real radii, and they always stick.
+- Runs are capped at 5,000 years per call; a century takes about 3.6 s with Mercury in the system.
+- Energy error is printed for every run so you can see when a close pass strained the integrator.
