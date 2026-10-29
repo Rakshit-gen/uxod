@@ -192,9 +192,24 @@ $("reset").onclick = () => {
 
 $("preset").onchange = async (e) => {
   if (!e.target.value) return;
-  const saved = await (await fetch(`plans/${e.target.value}.json`)).json();
+  openPlan(await (await fetch(`plans/${e.target.value}.json`)).json());
+};
+
+// A plan.json saved by the command line: {"question": ..., "plan": [...]}.
+function openPlan(saved) {
+  if (!Array.isArray(saved.plan)) throw new Error("that file has no plan in it");
   load(saved.plan);
-  $("question").textContent = saved.question;
+  $("question").textContent = saved.question || "";
+}
+
+$("planfile").onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    openPlan(JSON.parse(await file.text()));
+  } catch (err) {
+    $("error").textContent = `Couldn't read ${file.name}: ${err.message}`;
+  }
 };
 
 function act(tool, args) {

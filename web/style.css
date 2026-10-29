@@ -43,3 +43,5 @@ input[type=number] { width: 7ch; }
 #events:empty::before { content: "Nothing has collided or left yet."; margin-left: -20px; }
 #question { margin: 6px 0 0; color: var(--dim); }
 #question:empty { display: none; }
+code { font-family: var(--mono); font-size: 13px; }
+input[type=file] { padding: 2px; max-width: 100%; }
