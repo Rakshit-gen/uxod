@@ -8,6 +8,7 @@ G = 0.01720209895**2  # Gauss's constant squared: AU^3 / (Msun day^2)
 KMS = 86400 / 1.495978707e8  # km/s in AU/day
 DAYS_PER_YEAR = 365.25
 EJECTED_AU = 200  # unbound and this far from the barycentre
+HABITABLE_AU = (0.95, 1.67)  # a rough habitable zone for today's Sun
 
 # J2000 elements from JPL's "Approximate Positions of the Planets" (Standish):
 # a (AU), e, inclination, mean longitude, longitude of perihelion, longitude
@@ -179,7 +180,22 @@ def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
         for b, p, v in zip(bodies, pos, vel):
             b.pos, b.vel = p.copy(), v.copy()
 
+    closest: dict[str, float] = {}
+    farthest: dict[str, float] = {}
+
+    def track():
+        # Distances from the Sun, while it's still there.
+        names_now = [b.name for b in bodies]
+        if "Sun" not in names_now:
+            return
+        d = np.linalg.norm(pos - pos[names_now.index("Sun")], axis=1)
+        for n, r in zip(names_now, d):
+            if n != "Sun":
+                closest[n] = min(closest.get(n, np.inf), float(r))
+                farthest[n] = max(farthest.get(n, 0.0), float(r))
+
     record()
+    track()
     next_frame = every
     while t < end:
         dt = min(time_step(r2, vel, pair_mass, base), end - t)
@@ -221,6 +237,8 @@ def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
                 lost += before_e - energy(pos, vel, mass)
             if gone:
                 acc, r2 = accelerations(pos, mass)
+        if steps % 20 == 0:
+            track()
         if t >= next_frame:
             record()
             next_frame += every
@@ -229,6 +247,12 @@ def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
     if result.frame_years[-1] != round(t / DAYS_PER_YEAR, 3):
         record()
     result.after = snapshot(bodies)
+    for b in bodies:
+        if b.name in closest:
+            result.after[b.name]["sun_distance_range_au"] = [round(closest[b.name], 3), round(farthest[b.name], 3)]
+    if "Earth" in closest and "Earth" in result.after:
+        result.after["Earth"]["stayed_habitable"] = (
+            HABITABLE_AU[0] <= closest["Earth"] and farthest["Earth"] <= HABITABLE_AU[1])
     result.steps = steps
     result.energy_error = float(abs((energy(pos, vel, mass) + lost - e0) / e0))
     return result
