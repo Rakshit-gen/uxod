@@ -1,0 +1,1 @@
+{"question": "What if the Sun vanished?", "plan": [{"tool": "remove_body", "args": {"name": "Sun"}}, {"tool": "run", "args": {"years": 100}}]}
