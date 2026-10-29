@@ -74,22 +74,56 @@ function remember() {
   for (const name of trails.keys()) if (!names.has(name)) trails.delete(name);
 }
 
-// The open-ended run that the play button drives. Changing anything ends it
-// and the next frame starts a new one, as a plan would.
-function live() {
-  if (!universe.current || universe.current.done) universe.current = universe.run({ years: 5000 });
+// Steps of a plan still to come. Runs in it play out in real time.
+let queue = [];
+
+function next() {
+  while (queue.length) {
+    const { tool, args } = queue.shift();
+    try {
+      if (universe.call(tool, args) && tool === "run") return;
+    } catch (e) {
+      $("error").textContent = `${tool}: ${e.message}`;
+      queue = [];
+    }
+  }
+}
+
+// With no plan running, play drives an open-ended run. Changing anything
+// ends it, and the next frame starts a new one, as a plan would.
+function current() {
+  if (!universe.current) {
+    universe.current = universe.run({ years: 5000 });
+    universe.current.live = true;
+  }
   return universe.current;
+}
+
+function load(plan) {
+  universe = new Universe();
+  trails.clear();
+  Object.assign(earthRange, { lo: Infinity, hi: 0 });
+  clock.years = 0;
+  $("error").textContent = $("arrives").textContent = "";
+  queue = [...plan];
+  next();
+  table();
 }
 
 function frame(now) {
   const dt = Math.min((now - clock.last) / 1000, 0.1);
   clock.last = now;
   if (clock.playing) {
-    const run = live();
+    const run = current();
     const before = run.t;
     run.advance(dt * clock.yearsPerSecond * 365.25);
     clock.years += (run.t - before) / 365.25;
     remember();
+    status();
+    if (run.done) {
+      closeRun();
+      next();
+    }
   }
   draw();
   $("year").textContent = `year ${clock.years.toFixed(1)}`;
@@ -135,14 +169,27 @@ function status() {
 setInterval(status, 250);
 
 // Ends the run in progress, logging how long it went, so the log stays a plan that replays.
+// A plan's run cut short is logged as the part that ran.
 function closeRun() {
   const run = universe.current;
   if (run && run.t > 0) {
-    universe.log.push({ tool: "run", args: { years: run.t / 365.25 } });
+    const years = run.t / 365.25;
+    if (run.live) universe.log.push({ tool: "run", args: { years } });
+    else if (!run.done) universe.log.findLast((s) => s.tool === "run").args = { years };
     universe.events.push(...run.events);
+  } else if (run && !run.live) {
+    universe.log.pop();
   }
+  if (run && !run.done) queue = [];
   universe.current = null;
 }
+
+$("preset").onchange = async (e) => {
+  if (!e.target.value) return;
+  const saved = await (await fetch(`plans/${e.target.value}.json`)).json();
+  load(saved.plan);
+  $("question").textContent = saved.question;
+};
 
 function act(tool, args) {
   closeRun();

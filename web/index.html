@@ -21,6 +21,19 @@
       <canvas id="sky" role="img" aria-label="The Sun and planets, seen from above"></canvas>
     </section>
     <aside class="panel" id="panel">
+      <section>
+        <label>Scenario
+          <select id="preset">
+            <option value="">Pick one, or wreck it yourself</option>
+            <option value="black-hole">A black hole passes 20 AU out</option>
+            <option value="earth-smash">A Mars-mass body hits Earth</option>
+            <option value="half-sun">The Sun loses half its mass</option>
+            <option value="jupiter-star">Jupiter 80 times heavier</option>
+            <option value="no-sun">The Sun vanishes</option>
+          </select>
+        </label>
+        <p id="question"></p>
+      </section>
       <section class="clock">
         <button id="play" type="button">Pause</button>
         <label>Speed
