@@ -1,0 +1,1 @@
+{"question": "What if a 10 solar mass black hole passed 20 AU from the Sun at 50 km/s?", "plan": [{"tool": "add_flyby", "args": {"name": "Black hole", "mass": 10, "mass_unit": "msun", "closest_approach_au": 20, "speed_kms": 50, "angle_deg": 120, "inclination_deg": 10}}, {"tool": "run", "args": {"years": 60}}]}
