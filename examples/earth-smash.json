@@ -1,0 +1,1 @@
+{"question": "What if a Mars-sized body hit Earth head-on at 20 km/s?", "plan": [{"tool": "smash", "args": {"target": "Earth", "impactor_mass": 0.107, "mass_unit": "mearth", "speed_kms": 20, "direction": "retrograde"}}, {"tool": "run", "args": {"years": 50}}]}
