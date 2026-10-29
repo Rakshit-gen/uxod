@@ -4,6 +4,8 @@ import { Universe } from "./tools.js";
 const COLOURS = { Sun: "#f5c542", Mercury: "#9a9a9a", Venus: "#d9b38c", Earth: "#4f8fe8", Mars: "#d0603a",
   Jupiter: "#c99b6d", Saturn: "#e2cf8f", Uranus: "#8fd6d9", Neptune: "#4a6fd6" };
 const colour = (name) => COLOURS[name] || "#ff4fd8";
+// Names can come from a shared plan, so they are escaped before going into HTML.
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 const sky = document.getElementById("sky");
 const g = sky.getContext("2d");
@@ -95,7 +97,7 @@ function table() {
     const o = orbit(universe.bodies, b);
     const from = sun && b !== sun ? norm(sub(b.pos, sun.pos)).toFixed(3) : "";
     const a = o.bound ? o.a_au.toFixed(3) : o.orbits ? "unbound" : "";
-    return `<tr data-name="${b.name}"><td><span class="swatch" style="background:${colour(b.name)}"></span>${b.name}</td>`
+    return `<tr data-name="${esc(b.name)}"><td><span class="swatch" style="background:${colour(b.name)}"></span>${esc(b.name)}</td>`
       + `<td class="num">${from}</td><td class="num${o.orbits && !o.bound ? " unbound" : ""}">${a}</td>`
       + `<td class="num">${o.orbits ? o.e.toFixed(3) : ""}</td></tr>`;
   }).join("");
