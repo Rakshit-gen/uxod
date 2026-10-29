@@ -7,7 +7,7 @@ import numpy as np
 G = 0.01720209895**2  # Gauss's constant squared: AU^3 / (Msun day^2)
 KMS = 86400 / 1.495978707e8  # km/s in AU/day
 DAYS_PER_YEAR = 365.25
-EJECTED_AU = 200  # unbound, this far from the barycentre and moving away
+EJECTED_AU = 200  # unbound, this far from the anchor and moving away
 HABITABLE_AU = (0.95, 1.67)  # a rough habitable zone for today's Sun
 
 # J2000 elements from JPL's "Approximate Positions of the Planets" (Standish):
@@ -138,6 +138,25 @@ def snapshot(bodies):
     return {b.name: {"mass_msun": b.mass, **orbit(bodies, b)} for b in bodies}
 
 
+def anchor(bodies):
+    """What "the system" means: the Sun, or the heaviest body once the Sun is gone."""
+    return next((b for b in bodies if b.name == "Sun"), None) or max(bodies, key=lambda b: b.mass)
+
+
+def leaving(bodies):
+    """Bodies unbound from the anchor, EJECTED_AU from it and moving away."""
+    a = anchor(bodies)
+    out = []
+    for b in bodies:
+        if b is a:
+            continue
+        r, v = b.pos - a.pos, b.vel - a.vel
+        dist = np.sqrt(r @ r)
+        if dist > EJECTED_AU and r @ v > 0 and (v @ v) / 2 > G * (a.mass + b.mass) / dist:
+            out.append(b)
+    return out
+
+
 def time_step(r2, vel, pair_mass, base):
     """A step short enough for the closest pair: a fiftieth of their free-fall time."""
     i, j = divmod(int(np.argmin(r2**1.5 / pair_mass)), len(r2))
@@ -151,7 +170,7 @@ def time_step(r2, vel, pair_mass, base):
 def run(bodies: list[Body], years: float, frames: int = 600, max_steps: int = 3_000_000) -> Result:
     """Advances the bodies in place by `years` with a kick-drift-kick
     leapfrog. Bodies that touch merge, conserving momentum; bodies that
-    leave are dropped once unbound, EJECTED_AU from the barycentre and receding."""
+    leave the anchor (see leaving) are dropped."""
     before = snapshot(bodies)
     names = [b.name for b in bodies]
     events: list[str] = []
@@ -244,14 +263,13 @@ def run(bodies: list[Body], years: float, frames: int = 600, max_steps: int = 3_
             lost += before_e - energy(pos, vel, mass)
             acc, r2 = accelerations(pos, mass)
         elif steps % 200 == 0:
-            gone = [b for b in bodies if np.linalg.norm(b.pos) > EJECTED_AU and b.pos @ b.vel > 0
-                    and len(bodies) > 1 and not orbit(bodies, b)["bound"]]
+            gone = leaving(bodies)
             if gone:
                 flush()
             for b in gone:
                 before_e = energy(pos, vel, mass)
                 bodies.remove(b)
-                speed = np.linalg.norm(b.vel) / KMS
+                speed = np.linalg.norm(b.vel - anchor(bodies).vel) / KMS
                 events.append(f"year {t / DAYS_PER_YEAR:.2f}: {b.name} left the system at {speed:.1f} km/s")
                 pos, vel, mass, radii = arrays()
                 pair_mass, reach = pairs()

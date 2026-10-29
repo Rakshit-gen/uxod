@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import numpy as np
 
 from uxod import sim
@@ -38,7 +41,7 @@ def test_without_the_sun_everything_leaves():
     result = sim.run(bodies, 60)
     gone = [e.split(": ")[1].split()[0] for e in result.events]
     assert {"Mercury", "Venus", "Earth"} <= set(gone)
-    assert "Earth left the system at 30.3 km/s" in " ".join(result.events)
+    assert "Jupiter" not in gone  # with the Sun gone it is what the others leave
 
 
 def test_a_stopped_earth_falls_into_the_sun():
@@ -101,3 +104,19 @@ def test_planets_keep_orbiting_the_sun_with_a_heavier_body_far_away():
     snap = u.list_bodies()
     assert snap["Sun"]["orbits"] == "Black hole"
     assert snap["Earth"]["orbits"] == "Sun" and snap["Earth"]["bound"]
+
+
+def test_a_black_hole_flyby_never_ejects_the_sun():
+    from uxod import agent
+
+    plan = json.loads(Path("examples/black-hole.json").read_text())["plan"]
+    u = agent.replay(plan, on_step=lambda s: None)
+    lost = u.results[-1].events
+    assert not any(e.split(": ")[1].startswith("Sun ") for e in lost)
+    assert any("Black hole left" in e for e in lost)
+
+
+def test_with_the_sun_gone_the_heaviest_body_is_the_anchor():
+    bodies = sim.solar_system()
+    bodies.remove(by_name(bodies, "Sun"))
+    assert sim.anchor(bodies).name == "Jupiter"
