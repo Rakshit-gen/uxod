@@ -212,6 +212,40 @@ $("planfile").onchange = async (e) => {
   }
 };
 
+// Everything done so far as a plan, the run in progress included.
+function planSoFar() {
+  const plan = universe.log.map((s) => ({ tool: s.tool, args: { ...s.args } }));
+  const run = universe.current;
+  if (run && run.t > 0 && run.live) plan.push({ tool: "run", args: { years: run.t / 365.25 } });
+  else if (run && !run.live) plan.findLast((s) => s.tool === "run").args.years = run.t / 365.25;
+  return plan;
+}
+
+// The plan goes in the URL fragment, base64 JSON, so the link replays it anywhere.
+const encode = (saved) => btoa(unescape(encodeURIComponent(JSON.stringify(saved))));
+const decode = (text) => JSON.parse(decodeURIComponent(escape(atob(text))));
+
+$("share").onclick = async () => {
+  const saved = { question: $("question").textContent || "Something I did to the solar system", plan: planSoFar() };
+  const url = `${location.origin}${location.pathname}#plan=${encode(saved)}`;
+  history.replaceState(null, "", url);
+  try {
+    await navigator.clipboard.writeText(url);
+    $("share").textContent = "Copied";
+  } catch {
+    $("share").textContent = "Link is in the address bar";
+  }
+  setTimeout(() => { $("share").textContent = "Copy link"; }, 2000);
+};
+
+if (location.hash.startsWith("#plan=")) {
+  try {
+    openPlan(decode(location.hash.slice(6)));
+  } catch (err) {
+    $("error").textContent = `That link's plan couldn't be read: ${err.message}`;
+  }
+}
+
 function act(tool, args) {
   closeRun();
   try {
