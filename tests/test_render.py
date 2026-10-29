@@ -11,3 +11,12 @@ def test_runs_join_into_one_timeline_even_when_bodies_come_and_go():
     assert frames[0][-1] is None and frames[-1][-1] is not None
     assert years[-1] == 2 and years == sorted(years)
     assert all(len(f) == len(names) for f in frames)
+
+
+def test_the_page_carries_the_frames_and_escapes_text():
+    u = tools.Universe()
+    u.run(1)
+    out = render.page("what if <b>?", "Earth & co survive", u.results)
+    assert "what if &lt;b&gt;?" in out and "Earth &amp; co" in out
+    assert '"names": ["Sun"' in out
+    assert out.count("<script>") == 1
