@@ -58,3 +58,74 @@ export function solarSystem() {
   toBarycentre(bodies);
   return bodies;
 }
+
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+export const norm = (a) => Math.sqrt(dot(a, a));
+export { sub, dot, cross };
+
+// Accelerations, and squared distances between every pair (Infinity on the diagonal).
+export function accelerations(bodies) {
+  const n = bodies.length;
+  const acc = bodies.map(() => [0, 0, 0]);
+  const r2 = Array.from({ length: n }, () => new Array(n).fill(Infinity));
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const d = sub(bodies[j].pos, bodies[i].pos);
+      const s = dot(d, d);
+      r2[i][j] = r2[j][i] = s;
+      const inv = G / s ** 1.5;
+      for (let k = 0; k < 3; k++) {
+        acc[i][k] += bodies[j].mass * inv * d[k];
+        acc[j][k] -= bodies[i].mass * inv * d[k];
+      }
+    }
+  }
+  return { acc, r2 };
+}
+
+export function energy(bodies) {
+  let e = 0;
+  for (let i = 0; i < bodies.length; i++) {
+    e += 0.5 * bodies[i].mass * dot(bodies[i].vel, bodies[i].vel);
+    for (let j = i + 1; j < bodies.length; j++) {
+      e -= (G * bodies[i].mass * bodies[j].mass) / norm(sub(bodies[i].pos, bodies[j].pos));
+    }
+  }
+  return e;
+}
+
+// Of the bodies at least as heavy, the one pulling hardest. The heaviest orbits nothing.
+export function primary(bodies, body) {
+  let best = null, pull = -1;
+  for (const h of bodies) {
+    if (h === body || h.mass < body.mass) continue;
+    const d = sub(h.pos, body.pos);
+    const p = h.mass / dot(d, d);
+    if (p > pull) [best, pull] = [h, p];
+  }
+  return best;
+}
+
+export function orbit(bodies, body) {
+  const host = primary(bodies, body);
+  if (!host) return { orbits: null };
+  const r = sub(body.pos, host.pos), v = sub(body.vel, host.vel);
+  const mu = G * (host.mass + body.mass);
+  const dist = norm(r);
+  const specific = dot(v, v) / 2 - mu / dist;
+  const h = cross(r, v);
+  const e = Math.sqrt(Math.max(0, 1 + (2 * specific * dot(h, h)) / mu ** 2));
+  const out = { orbits: host.name, distance_au: dist, e, bound: specific < 0 };
+  if (specific < 0) {
+    out.a_au = -mu / (2 * specific);
+    out.period_years = (2 * Math.PI * Math.sqrt(out.a_au ** 3 / mu)) / DAYS_PER_YEAR;
+  }
+  return out;
+}
+
+// The Sun, or the heaviest body once the Sun is gone.
+export function anchor(bodies) {
+  return bodies.find((b) => b.name === "Sun") || bodies.reduce((a, b) => (b.mass > a.mass ? b : a));
+}
