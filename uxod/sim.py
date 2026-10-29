@@ -132,6 +132,16 @@ def snapshot(bodies):
     return {b.name: {"mass_msun": b.mass, **orbit(bodies, b)} for b in bodies}
 
 
+def time_step(r2, vel, pair_mass, base):
+    """A step short enough for the closest pair: a fiftieth of their free-fall time."""
+    i, j = divmod(int(np.argmin(r2**1.5 / pair_mass)), len(r2))
+    r = np.sqrt(r2[i, j])
+    dv = vel[i] - vel[j]
+    v = np.sqrt(dv @ dv)
+    free_fall = np.sqrt(r**3 / (G * pair_mass[i, j]))
+    return min(base, 0.02 * free_fall, 0.05 * r / max(v, 1e-12))
+
+
 def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
     """Advances the bodies in place by `years` with a kick-drift-kick leapfrog."""
     before = snapshot(bodies)
@@ -144,6 +154,7 @@ def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
     pos = np.array([b.pos for b in bodies])
     vel = np.array([b.vel for b in bodies])
     mass = np.array([b.mass for b in bodies])
+    pair_mass = mass[None] + mass[:, None]
     e0 = energy(pos, vel, mass)
     acc, r2 = accelerations(pos, mass)
     t, steps = 0.0, 0
@@ -157,7 +168,7 @@ def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
     record()
     next_frame = every
     while t < end:
-        dt = min(base, end - t)
+        dt = min(time_step(r2, vel, pair_mass, base), end - t)
         vel += 0.5 * dt * acc
         pos += dt * vel
         acc, r2 = accelerations(pos, mass)
