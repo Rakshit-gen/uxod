@@ -63,3 +63,15 @@ def test_frames_cover_the_whole_run():
     result = sim.run(sim.solar_system(), 5, frames=50)
     assert result.frame_years[0] == 0 and result.frame_years[-1] == 5
     assert all(len(f) == len(result.names) for f in result.frames)
+
+
+def test_a_close_pass_in_the_middle_of_a_run_is_caught():
+    from uxod import tools
+
+    u = tools.Universe()
+    for name in sim.PLANETS:
+        u.remove_body(name)
+    # Fast enough that sampling every 20 steps misses the closest point by 0.012 AU.
+    out = u.add_flyby("Rogue", 1, "mjup", 5, 30)
+    result = u.call("run", {"years": 2 * out["closest_approach_in_years"]})
+    assert abs(result["bodies"]["Rogue"]["sun_distance_range_au"][0] - 5) < 0.002

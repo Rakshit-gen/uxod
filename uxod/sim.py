@@ -182,17 +182,27 @@ def run(bodies: list[Body], years: float, frames: int = 600, max_steps: int = 3_
 
     closest: dict[str, float] = {}
     farthest: dict[str, float] = {}
+    lo = hi = None  # per-step running minimum and maximum, aligned with bodies
 
     def track():
         # Distances from the Sun, while it's still there.
-        names_now = [b.name for b in bodies]
-        if "Sun" not in names_now:
+        nonlocal lo, hi
+        sun = next((k for k, b in enumerate(bodies) if b.name == "Sun"), None)
+        if sun is None:
             return
-        d = np.linalg.norm(pos - pos[names_now.index("Sun")], axis=1)
-        for n, r in zip(names_now, d):
-            if n != "Sun":
-                closest[n] = min(closest.get(n, np.inf), float(r))
-                farthest[n] = max(farthest.get(n, 0.0), float(r))
+        d = np.sqrt(((pos - pos[sun]) ** 2).sum(1))
+        lo = d if lo is None else np.minimum(lo, d)
+        hi = d if hi is None else np.maximum(hi, d)
+
+    def flush():
+        # Called before the list of bodies changes.
+        nonlocal lo, hi
+        if lo is not None:
+            for b, a, z in zip(bodies, lo, hi):
+                if b.name != "Sun":
+                    closest[b.name] = min(closest.get(b.name, np.inf), float(a))
+                    farthest[b.name] = max(farthest.get(b.name, 0.0), float(z))
+        lo = hi = None
 
     record()
     track()
@@ -208,6 +218,7 @@ def run(bodies: list[Body], years: float, frames: int = 600, max_steps: int = 3_
         vel += 0.5 * dt * acc
         t += dt
         steps += 1
+        track()
 
         touching = np.argwhere(np.triu(r2 < reach, 1)) if (r2 < reach).any() else ()
         if len(touching) or steps % 200 == 0 or t >= next_frame:
@@ -215,6 +226,7 @@ def run(bodies: list[Body], years: float, frames: int = 600, max_steps: int = 3_
         if len(touching):
             i, j = touching[0]
             big, small = (bodies[i], bodies[j]) if mass[i] >= mass[j] else (bodies[j], bodies[i])
+            flush()
             before_e = energy(pos, vel, mass)
             m = big.mass + small.mass
             big.vel = (big.mass * big.vel + small.mass * small.vel) / m
@@ -230,6 +242,8 @@ def run(bodies: list[Body], years: float, frames: int = 600, max_steps: int = 3_
         elif steps % 200 == 0:
             gone = [b for b in bodies if np.linalg.norm(b.pos) > EJECTED_AU and len(bodies) > 1
                     and not orbit(bodies, b)["bound"]]
+            if gone:
+                flush()
             for b in gone:
                 before_e = energy(pos, vel, mass)
                 bodies.remove(b)
@@ -240,14 +254,12 @@ def run(bodies: list[Body], years: float, frames: int = 600, max_steps: int = 3_
                 lost += before_e - energy(pos, vel, mass)
             if gone:
                 acc, r2 = accelerations(pos, mass)
-        if steps % 20 == 0:
-            track()
         if t >= next_frame:
             record()
             next_frame += every
 
     sync()
-    track()
+    flush()
     if result.frame_years[-1] != round(t / DAYS_PER_YEAR, 3):
         record()
     result.after = snapshot(bodies)
