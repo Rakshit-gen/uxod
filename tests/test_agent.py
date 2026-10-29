@@ -44,3 +44,20 @@ def test_a_model_that_never_stops_is_cut_off():
     chat, _ = scripted(*[{"tool_calls": [call(str(i), "list_bodies")]} for i in range(agent.MAX_TURNS)])
     report, _ = agent.ask("x", chat=chat, on_step=lambda s: None)
     assert report.startswith("Stopped after")
+
+
+def test_a_logged_plan_replays_without_a_model():
+    chat, _ = scripted(
+        {"tool_calls": [call("a", "scale_mass", name="Sun", factor=0.5), call("b", "run", years=2)]},
+        {"content": "ok"},
+    )
+    _, live = agent.ask("halve the sun", chat=chat, on_step=lambda s: None)
+    again = agent.replay(live.log, on_step=lambda s: None)
+    assert again.results[0].after["Earth"] == live.results[0].after["Earth"]
+
+
+def test_a_failing_step_stops_a_replay():
+    import pytest
+
+    with pytest.raises(ValueError, match="remove_body failed"):
+        agent.replay([{"tool": "remove_body", "args": {"name": "Vulcan"}}], on_step=lambda s: None)
