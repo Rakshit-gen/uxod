@@ -7,6 +7,7 @@ import numpy as np
 G = 0.01720209895**2  # Gauss's constant squared: AU^3 / (Msun day^2)
 KMS = 86400 / 1.495978707e8  # km/s in AU/day
 DAYS_PER_YEAR = 365.25
+EJECTED_AU = 200  # unbound and this far from the barycentre
 
 # J2000 elements from JPL's "Approximate Positions of the Planets" (Standish):
 # a (AU), e, inclination, mean longitude, longitude of perihelion, longitude
@@ -145,7 +146,7 @@ def time_step(r2, vel, pair_mass, base):
 def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
     """Advances the bodies in place by `years` with a kick-drift-kick
     leapfrog. Bodies that touch merge, conserving momentum; bodies that
-    leave are kept."""
+    leave are dropped once unbound and EJECTED_AU from the barycentre."""
     before = snapshot(bodies)
     names = [b.name for b in bodies]
     events: list[str] = []
@@ -163,7 +164,7 @@ def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
     pos, vel, mass, radii = arrays()
     pair_mass, reach = pairs()
     e0 = energy(pos, vel, mass)
-    lost = 0.0  # energy carried off by merges, so it isn't counted as error
+    lost = 0.0  # energy carried off by merges and ejections, so it isn't counted as error
     acc, r2 = accelerations(pos, mass)
     t, steps = 0.0, 0
     every = end / frames
@@ -190,7 +191,7 @@ def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
         steps += 1
 
         touching = np.argwhere(np.triu(r2 < reach, 1)) if (r2 < reach).any() else ()
-        if len(touching) or t >= next_frame:
+        if len(touching) or steps % 200 == 0 or t >= next_frame:
             sync()
         if len(touching):
             i, j = touching[0]
@@ -207,6 +208,19 @@ def run(bodies: list[Body], years: float, frames: int = 600) -> Result:
             pair_mass, reach = pairs()
             lost += before_e - energy(pos, vel, mass)
             acc, r2 = accelerations(pos, mass)
+        elif steps % 200 == 0:
+            gone = [b for b in bodies if np.linalg.norm(b.pos) > EJECTED_AU and len(bodies) > 1
+                    and not orbit(bodies, b)["bound"]]
+            for b in gone:
+                before_e = energy(pos, vel, mass)
+                bodies.remove(b)
+                speed = np.linalg.norm(b.vel) / KMS
+                events.append(f"year {t / DAYS_PER_YEAR:.2f}: {b.name} left the system at {speed:.1f} km/s")
+                pos, vel, mass, radii = arrays()
+                pair_mass, reach = pairs()
+                lost += before_e - energy(pos, vel, mass)
+            if gone:
+                acc, r2 = accelerations(pos, mass)
         if t >= next_frame:
             record()
             next_frame += every
