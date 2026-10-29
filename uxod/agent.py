@@ -65,3 +65,13 @@ def ask(question: str, chat=None, model: str | None = None, on_step=print):
             messages.append({"role": "tool", "tool_call_id": call["id"], "content": json.dumps(out)})
     return f"Stopped after {MAX_TURNS} turns without a report.", universe
 
+
+def replay(plan: list[dict], on_step=print) -> tools.Universe:
+    """Runs a saved list of tool calls, with no model involved."""
+    universe = tools.Universe()
+    for step in plan:
+        on_step(f"> {step['tool']}({', '.join(f'{k}={v}' for k, v in step['args'].items())})")
+        out = universe.call(step["tool"], step["args"])
+        if "error" in out:
+            raise ValueError(f"{step['tool']} failed: {out['error']}")
+    return universe
